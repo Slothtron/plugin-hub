@@ -12,7 +12,7 @@ ZCode 适配插件化,补上 Windows / marketplace 这条分发路径;dsh 与 pi
 ## 布局
 
 ```
-marketplace.json                                  # ZCode 本地测试市场(Slothtron 插件)
+marketplace.json                                  # ZCode 本地测试市场(slothtron-plugins)
 plugins/openviking-memory/                        # 插件(overlay + upstream 镜像)
   .zcode-plugin/ hooks/ .mcp.json commands/       #   自写 overlay(ZCode 化 manifests 等)
   scripts/with-user-config.mjs                    #   自写:配置防火墙(UI 或默认,env/ov.conf 不读)
@@ -48,6 +48,6 @@ zcode 测试套件 → 提交推送。也可 workflow_dispatch 手动指定 ref�
 
 ## 本地安装(UI)
 
-Plugin Marketplace → Add → 粘贴本仓库目录 → Personal → `Slothtron 插件` →
+Plugin Marketplace → Add → 粘贴本仓库目录 → Personal → `slothtron-plugins` →
 OpenViking Memory → Install。连接配置在 Settings → Plugins 里填(UI 或内置默认
 `http://127.0.0.1:1933`,env 与 ov.conf 一律不读)。
