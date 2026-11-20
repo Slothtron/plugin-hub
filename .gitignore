@@ -1,0 +1,5 @@
+# Override the global gitignore's blanket `.github/` rule so the sync workflow
+# is tracked. Order matters: these must come after the global rule is loaded,
+# and both the dir and its contents need un-ignoring.
+!.github/
+!.github/**

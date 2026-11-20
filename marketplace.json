@@ -1,0 +1,28 @@
+{
+  "name": "dev-myclaw-plugins",
+  "owner": {
+    "name": "myclaw workspace"
+  },
+  "plugins": [
+    {
+      "name": "openviking-memory",
+      "source": "./openviking-memory",
+      "version": "1.6.31",
+      "description": "OpenViking long-term semantic memory for ZCode: auto-recall at session start and on every prompt, turn capture on Stop, and find/search/read/remember MCP tools via a stdio proxy.",
+      "displayName": "OpenViking Memory",
+      "displayName_i18n": {
+        "zh-CN": "OpenViking 记忆"
+      },
+      "description_i18n": {
+        "zh-CN": "OpenViking 长期语义记忆:会话启动与每次提问时自动召回,Stop 时增量捕获对话,并经 stdio 代理提供 find/search/read/remember 等 MCP 工具。"
+      },
+      "category": "productivity",
+      "keywords": [
+        "memory",
+        "openviking",
+        "semantic-search",
+        "mcp"
+      ]
+    }
+  ]
+}

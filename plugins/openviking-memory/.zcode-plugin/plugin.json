@@ -1,0 +1,49 @@
+{
+  "name": "openviking-memory",
+  "version": "1.6.31",
+  "description": "OpenViking long-term semantic memory for ZCode: auto-recall relevant memories at session start and on every prompt, capture finished turns, and expose find/search/read/remember MCP tools via a stdio proxy. Connection settings come only from the plugin settings UI or the built-in default (environment variables and ov.conf/ovcli.conf are ignored).",
+  "author": {
+    "name": "OpenViking (volcengine)",
+    "url": "https://github.com/volcengine/OpenViking"
+  },
+  "homepage": "https://github.com/volcengine/OpenViking",
+  "license": "Apache-2.0",
+  "keywords": [
+    "memory",
+    "openviking",
+    "semantic-search",
+    "long-term-memory",
+    "context-engine",
+    "mcp"
+  ],
+  "userConfig": {
+    "url": {
+      "title": "OpenViking server URL",
+      "description": "Base URL of your OpenViking server, e.g. http://127.0.0.1:11933. Leave blank to use the built-in default http://127.0.0.1:1933. Environment variables and ov.conf/ovcli.conf are not consulted.",
+      "type": "string",
+      "default": ""
+    },
+    "api_key": {
+      "title": "API key",
+      "description": "API key (or bearer token) if the server requires auth. Leave blank for local dev-mode servers.",
+      "type": "string",
+      "required": false,
+      "sensitive": true
+    },
+    "account": {
+      "title": "Account",
+      "description": "OpenViking account id. Leave blank for the default identity.",
+      "type": "string",
+      "required": false
+    },
+    "user": {
+      "title": "User",
+      "description": "OpenViking user id. Leave blank for the default identity.",
+      "type": "string",
+      "required": false
+    }
+  },
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json",
+  "skills": "./skills"
+}

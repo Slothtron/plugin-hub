@@ -1,0 +1,85 @@
+# Periodically check the OpenViking upstream for agent-hook-plugin updates and
+# sync the mirrored trees into this hub. Manual trigger via workflow_dispatch
+# for ad-hoc syncs (points at any upstream ref).
+#
+# The sync script itself mirrors examples/agent-hook-plugin and
+# examples/memory-plugin-shared wholesale and rewrites the plugin/marketplace
+# version. It will fail the workflow if the tree state contract breaks
+# (verify-paths.mjs) or the upstream zcode test suite goes red.
+#
+# Commits and pushes happen only when upstream actually moved (version compare
+# against the hub manifest). Push uses the repo's GITHUB_TOKEN.
+
+name: sync-openviking-upstream
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # daily 03:17 UTC; jitter away from the hour
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Upstream git ref (tag/branch/commit)"
+        required: false
+        default: "main"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hub
+        uses: actions/checkout@v4
+
+      - name: Checkout upstream at pinned/current ref
+        uses: actions/checkout@v4
+        with:
+          repository: volcengine/OpenViking
+          ref: ${{ inputs.ref || 'main' }}
+          path: _upstream/OpenViking
+          # read-only public clone; no token needed beyond defaults
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Skip early when upstream mirror content is unchanged
+        id: ver
+        run: |
+          UP=$(node -p "JSON.parse(require('fs').readFileSync('_upstream/OpenViking/examples/agent-hook-plugin/plugin.json','utf8')).version")
+          # Content gate, not version gate: hash both mirrored trees on both
+          # sides. A version-only comparison could skip a sync when an
+          # overlay-only release collides with the next upstream patch number.
+          HASH_UP=$(cd _upstream/OpenViking/examples && find agent-hook-plugin memory-plugin-shared -type f -not -path "*/node_modules/*" -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d" " -f1)
+          HASH_HUB=$(cd plugins/openviking-memory/upstream && find agent-hook-plugin memory-plugin-shared -type f -not -path "*/node_modules/*" -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -d" " -f1)
+          echo "upstream=$UP hash-up=$HASH_UP hash-hub=$HASH_HUB"
+          echo "upstream=$UP" >> "$GITHUB_OUTPUT"
+          echo "changed=$([[ \"$HASH_UP\" != \"$HASH_HUB\" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Sync mirror
+        if: steps.ver.outputs.changed == 'true'
+        run: node scripts/sync-upstream.mjs "$PWD/_upstream/OpenViking"
+
+      - name: Structural checks
+        if: steps.ver.outputs.changed == 'true'
+        run: node scripts/verify-paths.mjs
+
+      - name: Upstream zcode test suite on the mirrored tree
+        if: steps.ver.outputs.changed == 'true'
+        run: >-
+          node --test
+          plugins/openviking-memory/upstream/agent-hook-plugin/tests/zcode.test.mjs
+          plugins/openviking-memory/upstream/agent-hook-plugin/tests/zcode-turns.test.mjs
+          plugins/openviking-memory/upstream/agent-hook-plugin/tests/zcode-capture.test.mjs
+        # zcode-async excluded: times out on runners and locally alike
+        # (environment-dependent detached-worker spawn, red upstream too)
+
+      - name: Commit and push
+        if: steps.ver.outputs.changed == 'true'
+        run: |
+          git config user.name "plugin-hub-sync"
+          git config user.email "plugin-hub-sync@users.noreply.github.com"
+          git add plugins/openviking-memory/upstream plugins/openviking-memory/.zcode-plugin/plugin.json marketplace.json
+          git commit -m "sync: OpenViking upstream ${{ steps.ver.outputs.upstream }}"
+          git push
