@@ -59,7 +59,10 @@ jobs:
 
       - name: Sync mirror
         if: steps.ver.outputs.changed == 'true'
-        run: node scripts/sync-upstream.mjs "$PWD/_upstream/OpenViking"
+        # --force: the ephemeral runner tree holds the _upstream checkout, which
+        # the local clean-tree guard would flag as untracked dirt; verify+tests
+        # below still gate the sync.
+        run: node scripts/sync-upstream.mjs "$PWD/_upstream/OpenViking" --force
 
       - name: Structural checks
         if: steps.ver.outputs.changed == 'true'
