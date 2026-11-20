@@ -1,7 +1,8 @@
 {
   "name": "Slothtron 插件",
   "owner": {
-    "name": "myclaw workspace"
+    "name": "Slothtron",
+    "url": "https://github.com/Slothtron"
   },
   "plugins": [
     {
