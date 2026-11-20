@@ -8,11 +8,7 @@
         "${ZCODE_PLUGIN_ROOT}/upstream/agent-hook-plugin/servers/mcp-proxy.mjs"
       ],
       "env": {
-        "OPENVIKING_HOOK_SOURCE": "zcode",
-        "ZCODE_USER_CONFIG_URL": "${user_config.url}",
-        "ZCODE_USER_CONFIG_API_KEY": "${user_config.api_key}",
-        "ZCODE_USER_CONFIG_ACCOUNT": "${user_config.account}",
-        "ZCODE_USER_CONFIG_USER": "${user_config.user}"
+        "OPENVIKING_HOOK_SOURCE": "zcode"
       },
       "enabled": true,
       "timeoutMs": 30000

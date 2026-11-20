@@ -1,6 +1,6 @@
 {
   "name": "openviking-memory",
-  "version": "1.6.35",
+  "version": "1.6.36",
   "description": "OpenViking long-term semantic memory for ZCode: auto-recall relevant memories at session start and on every prompt, capture finished turns, and expose find/search/read/remember MCP tools via a stdio proxy. Connection settings come only from the plugin settings UI or the built-in default (environment variables and ov.conf/ovcli.conf are ignored).",
   "author": {
     "name": "OpenViking (volcengine)",

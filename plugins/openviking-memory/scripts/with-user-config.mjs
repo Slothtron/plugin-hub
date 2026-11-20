@@ -4,10 +4,13 @@
  * Config firewall + userConfig bridge for ZCode.
  *
  * This plugin accepts connection settings from exactly two sources:
- *   1. the plugin settings UI (ZCode injects userConfig entries into hook
- *      processes as ZCODE_USER_CONFIG_<KEY>; for the MCP server the plugin's
- *      .mcp.json interpolates them into ZCODE_USER_CONFIG_* names too)
- *   2. the built-in defaults (http://127.0.0.1:1933, no auth)
+ *   1. the plugin settings UI:
+ *      - hook processes get ZCODE_USER_CONFIG_<KEY> env vars injected by ZCode;
+ *      - plugin stdio MCP servers do NOT get user_config interpolation (ZCode
+ *        passes .mcp.json env through verbatim), so the bridge falls back to
+ *        reading the saved UI values from ZCode's own config file
+ *        (~/.zcode/cli/config.json → plugins.options["<plugin>@<market>"]).
+ *   2. the built-in defaults (http://127.0.0.1:1933, no auth).
  *
  * Everything else the OpenViking runtime would normally consult is stripped
  * before the target script runs:
@@ -25,8 +28,11 @@
  * Usage: node with-user-config.mjs <target.mjs> [target args...]
  */
 
-import { resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 /** UI key suffix → runtime env var. */
 const OVERRIDES = [
@@ -38,6 +44,8 @@ const OVERRIDES = [
   ["USER", "OPENVIKING_USER"],
 ];
 
+const PLUGIN_ID = "openviking-memory@slothtron-plugins";
+
 /** Plugin plumbing that is not connection config; survives the wipe. */
 const ALLOWLIST = new Set([
   "OPENVIKING_HOOK_EVENT",
@@ -46,13 +54,39 @@ const ALLOWLIST = new Set([
   "OPENVIKING_DEBUG",
 ]);
 
-// 1. Collect UI values (non-empty only — blank means "use the default").
-const ui = [];
-for (const [uiKey, ovKey] of OVERRIDES) {
-  const value = process.env[`ZCODE_USER_CONFIG_${uiKey}`];
-  if (typeof value === "string" && value.trim()) {
-    ui.push([ovKey, value.trim()]);
+function loadZcodePluginOptions() {
+  const candidates = [
+    join(homedir(), ".zcode", "cli", "config.json"),
+    process.env.ZCODE_CLI_CONFIG_FILE || "",
+  ].filter(Boolean);
+  for (const path of candidates) {
+    try {
+      const cfg = JSON.parse(readFileSync(path, "utf8"));
+      const options = cfg?.plugins?.options?.[PLUGIN_ID];
+      if (options && typeof options === "object") return options;
+    } catch {}
   }
+  return {};
+}
+
+// 1. Collect UI values: env injection first (hooks), then ZCode config file
+//    (MCP stdio). A value that is still an uninterpolated "${...}" placeholder
+//    counts as unset — ZCode passes .mcp.json env through without expanding it.
+const ui = [];
+const seen = new Set();
+const consider = (suffix, raw) => {
+  if (typeof raw !== "string") return;
+  const value = raw.trim();
+  if (!value || value.startsWith("${") || seen.has(suffix)) return;
+  seen.add(suffix);
+  ui.push([suffix, value]);
+};
+for (const [uiKey] of OVERRIDES) {
+  consider(uiKey, process.env[`ZCODE_USER_CONFIG_${uiKey}`]);
+}
+const savedOptions = loadZcodePluginOptions();
+for (const [uiKey] of OVERRIDES) {
+  consider(uiKey, savedOptions[uiKey.toLowerCase()]);
 }
 
 // 2. Wipe every external OpenViking connection variable.
@@ -63,7 +97,8 @@ for (const name of Object.keys(process.env)) {
 }
 
 // 3. Apply the UI values, if any.
-for (const [ovKey, value] of ui) {
+for (const [uiKey, value] of ui) {
+  const ovKey = OVERRIDES.find(([k]) => k === uiKey)[1];
   process.env[ovKey] = value;
 }
 
